@@ -1,0 +1,57 @@
+# --- DEFINIZIONE GLOBALE ---
+networks:
+  arm-net:
+    driver: bridge
+
+services:
+  # --- SERVIZIO BUILDER ---
+  builder:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.builder
+    volumes:
+      - ./:/workspace
+    # --- UTILIZZO DELLA RETE (Indentato dentro il servizio) ---
+    networks:
+      - arm-net
+
+  qemu:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.qemu
+    depends_on:
+      builder:
+        condition: service_completed_successfully
+    volumes:
+      - ./:/workspace
+    networks:
+      - arm-net
+    # Eseguiamo lo script direttamente con sh
+    command: ["sh", "/workspace/dockerfiles/start-qemu.sh"]
+
+  gdbgui:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.gdbgui
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./:/workspace
+    networks:
+      - arm-net
+    depends_on:
+      - qemu
+    command: ["/gdbgui-env/bin/python3", "-m", "gdbgui.cli", "-n", "-p", "5000", "--host", "0.0.0.0", "--gdb-cmd", "/gdb-wrapper.sh"]
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: dockerfiles/Dockerfile.orchestrator
+    command: ["sh", "/workspace/dockerfiles/orchestrator.sh"]
+    volumes:
+      - ./:/workspace
+    networks:
+      - arm-net
+    depends_on:
+      - builder
+      - qemu

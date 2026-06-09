@@ -1,0 +1,11 @@
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    qemu-user \
+    coreutils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+# ornalasciamo che QEMU attenda
+CMD ["sh", "/workspace/dockerfiles/start-qemu.sh"]

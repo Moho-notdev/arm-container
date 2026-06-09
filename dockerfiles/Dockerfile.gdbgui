@@ -1,0 +1,30 @@
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-dev \
+    build-essential \
+    libffi-dev \
+    gcc-arm-none-eabi \
+    gdb-multiarch \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv /gdbgui-env && \
+    /gdbgui-env/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
+# Flag del compilatore C per forzare la retrocompatibilità con il vecchio codice di gdbgui
+ENV CFLAGS="-fcommon"
+
+RUN /gdbgui-env/bin/pip install --no-cache-dir \
+    gdbgui==0.15.2.0 \
+    flask-socketio==5.3.6
+
+WORKDIR /workspace
+
+COPY dockerfiles/gdb-wrapper.sh /gdb-wrapper.sh
+RUN chmod +x /gdb-wrapper.sh
+
+ENV WERKZEUG_RUN_MAIN=true
